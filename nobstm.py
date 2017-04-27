@@ -66,12 +66,13 @@ class Leaf(object):
 
 class Node(object):
 
-	def __init__(self, left, right=None):
+	def __init__(self, left=None, right=None):
 		self.left = left
 		self.right = right
 		
-		self.left.direction = 0
-		self.left.parent = self
+		if self.left:
+			self.left.direction = 0
+			self.left.parent = self
 		if self.right:
 			self.right.direction = 1
 			self.right.parent = self
@@ -165,10 +166,13 @@ class Node(object):
 	
 	# materialize
 	def draw(self):
-		self.left.draw()
+		if self.left: self.left.draw()
 		if self.right: self.right.draw()
 	
 	def calculate_dimensions(self, width, height, vertical=True, x=0, y=0, max_height=None):
+		if self.left is None:
+			return
+		
 		self.width = width
 		self.height = height
 		
@@ -198,6 +202,9 @@ class Node(object):
 
 # screen shit
 def make_window_tree(L):
+	if not L:
+		return Node()
+	
 	root = Node(Leaf(L[0]))
 	L = L[1:]
 	for value in L:
@@ -211,21 +218,24 @@ def make_desktop_window_list():
 	
 	# get focused window title
 	selected = int(check_output(['xdotool', 'getwindowfocus']).decode('utf-8').strip())
+	selected_in = False
 	
 	windows_ = check_output(['wmctrl', '-lG']).decode('utf-8').split('\n')
 	windows = []
-	
-	# add selected as first priority
-	windows.append(selected)
 	
 	for line in windows_:
 		matches = re.match(r'^(0x\w+)\s+(\-?\d+)', line)
 		if matches:
 			i = int(matches.group(1), 16)
 			if i == selected: # filter out selected
+				selected_in = True
 				continue
 			if int(matches.group(2)) == desktop:
 				windows.append(i)
+	
+	# add selected as first priority
+	if selected_in: # make sure it's not openbox and friends
+		windows.insert(0, selected)
 	
 	print(windows)
 	return (desktop, windows)
