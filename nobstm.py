@@ -13,6 +13,16 @@ import re
 import time
 import os.path
 
+SCREEN_REGEX = r'^\s+dimensions:\s+(\d+)x(\d+)'
+WINDOW_LIST_REGEX = r'^(0x\w+)\s+(\-?\d+)(?:\s+\d+){4}\s+\w+\s+(\w+)'
+
+EXCLUDE = ['dockx'] # exclude tiling these
+
+VERTICAL_PADDING = 10
+BOTTOM_PADDING = 40
+TOP_PADDING = 15
+LAST_BOTTOM_PADDING = 70
+
 class Leaf(object):
 	
 	dict = {}
@@ -50,11 +60,11 @@ class Leaf(object):
 		run([ 'xdotool', 'windowmove', str(self.id), str(self.x), str(self.y) ])
 	
 	def calculate_dimensions(self, width, height, vertical=True, x=0, y=0, max_height=None):
-		self.width = width - 20
-		self.height = height - 40
+		self.width = width - VERTICAL_PADDING*2
+		self.height = height - BOTTOM_PADDING
 		
-		self.x = x + 10
-		self.y = y + 15
+		self.x = x + VERTICAL_PADDING
+		self.y = y + TOP_PADDING
 		
 		if self.y + self.height > max_height:
 			self.height = max_height - self.y
@@ -224,13 +234,13 @@ def make_desktop_window_list():
 	windows = []
 	
 	for line in windows_:
-		matches = re.match(r'^(0x\w+)\s+(\-?\d+)', line)
+		matches = re.match(WINDOW_LIST_REGEX, line)
 		if matches:
 			i = int(matches.group(1), 16)
 			if i == selected: # filter out selected
 				selected_in = True
 				continue
-			if int(matches.group(2)) == desktop:
+			if int(matches.group(2)) == desktop and matches.group(3) not in EXCLUDE:
 				windows.append(i)
 	
 	# add selected as first priority
@@ -246,10 +256,11 @@ def track_changed_windows(desktop, old):
 	new = []
 	cleared = []
 	for line in windows_:
-		matches = re.match(r'^(0x\w+)\s+(\-?\d+)', line)
+		matches = re.match(WINDOW_LIST_REGEX, line)
 		if matches:
 			i = int(matches.group(1), 16)
-			if int(matches.group(2)) == desktop:
+			#print(matches.group(3))
+			if int(matches.group(2)) == desktop and matches.group(3) not in EXCLUDE:
 				if i not in old:
 					print('new: ', i, old)
 					new.append(i)
@@ -263,7 +274,7 @@ def track_changed_windows(desktop, old):
 def get_screen_size():
 	lines = check_output(['xdpyinfo']).decode('utf-8').split('\n')
 	line = next(filter(lambda line: 'dimensions' in line, lines))
-	matches = re.match(r'^\s+dimensions:\s+(\d+)x(\d+)', line)
+	matches = re.match(SCREEN_REGEX, line)
 	print(matches.group(1), matches.group(2))
 	return (int(matches.group(1)), int(matches.group(2)))
 
@@ -274,7 +285,7 @@ def main():
 	desktop, windows = make_desktop_window_list()
 	tree = make_window_tree(windows)
 	width, height = get_screen_size()
-	max_height = height - 60
+	max_height = height - LAST_BOTTOM_PADDING
 	
 	tree.calculate_dimensions(width, height, max_height=max_height)
 	print(tree)
