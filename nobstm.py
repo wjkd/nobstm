@@ -16,7 +16,9 @@ import os.path
 SCREEN_REGEX = r'^\s+dimensions:\s+(\d+)x(\d+)'
 WINDOW_LIST_REGEX = r'^(0x\w+)\s+(\-?\d+)(?:\s+\d+){4}\s+\w+\s+(\w+)'
 
-EXCLUDE = ['dockx'] # exclude tiling these
+EXCLUDE = { # exclude tiling these
+	'dockx' : False
+}
 
 VERTICAL_PADDING = 10
 BOTTOM_PADDING = 40
@@ -260,11 +262,14 @@ def track_changed_windows(desktop, old):
 		if matches:
 			i = int(matches.group(1), 16)
 			#print(matches.group(3))
-			if int(matches.group(2)) == desktop and matches.group(3) not in EXCLUDE:
+			if matches.group(3) in EXCLUDE and EXCLUDE[matches.group(3)]:
+				EXCLUDE[matches.group(3)] = True
+			if int(matches.group(2)) == desktop:
 				if i not in old:
 					print('new: ', i, old)
 					new.append(i)
 				windows.append(i)
+				
 	for i in old:
 		if i not in windows:
 			cleared.append(i)
@@ -300,6 +305,8 @@ def main():
 			tree.auto_insert(Leaf(window))
 			windows.append(window)
 		for window in cleared_windows:
+			if window in EXCLUDE:
+				EXCLUDE[window] = False
 			if window in windows:
 				Leaf.dict[window].remove()
 				windows[:] = (win for win in windows if win != window)
