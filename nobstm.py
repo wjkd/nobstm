@@ -58,8 +58,7 @@ class Leaf(object):
 	
 	# materialize
 	def draw(self):
-		run([ 'xdotool', 'windowsize', str(self.id), str(self.width), str(self.height) ])
-		run([ 'xdotool', 'windowmove', str(self.id), str(self.x), str(self.y) ])
+		run([ 'wmctrl', '-i', '-r', str(self.id), '-e', ','.join(['0', str(self.x), str(self.y), str(self.width), str(self.height) ]) ])
 	
 	def calculate_dimensions(self, width, height, vertical=True, x=0, y=0, max_height=None):
 		self.width = width - VERTICAL_PADDING*2
@@ -190,7 +189,7 @@ class Node(object):
 		
 		if vertical:
 			if self.right:
-				width /= 2
+				width //= 2
 			
 			self.left.calculate_dimensions(width, height, False, x, y, max_height)
 			
@@ -198,7 +197,7 @@ class Node(object):
 				self.right.calculate_dimensions(width, height, False, x + width, y, max_height)
 		else:
 			if self.right:
-				height /= 2
+				height //= 2
 			
 			self.left.calculate_dimensions(width, height, True, x, y, max_height)
 			
